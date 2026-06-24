@@ -72,34 +72,47 @@ function MediaCard({ item, cardW, cardH, onPreview, videoCache, dragging }) {
   const isCached = isVideo && videoCache && videoCache[item.src];
   const [posterOk, setPosterOk] = useState(true);
 
-  // 拖动时不触发点击（避免拖动后误打开预览）
-  const handleClick = (e) => {
+  // 图片卡片：整个卡片可点击；视频卡片：仅播放按钮可点击
+  const handleCardClick = (e) => {
+    if (isVideo) return; // 视频卡片不响应卡片区域的点击
     if (dragging) { e.preventDefault(); e.stopPropagation(); return; }
+    onPreview(item);
+  };
+
+  // 播放按钮点击（仅视频卡片）
+  const handlePlayClick = (e) => {
+    e.stopPropagation(); // 阻止冒泡到卡片 div
+    if (dragging) { e.preventDefault(); return; }
     onPreview(item);
   };
 
   return (
     <div className="portfolio__card"
       style={{ width: cardW + 'px', height: cardH + 'px' }}
-      onClick={handleClick}>
+      onClick={handleCardClick}>
       <div className="portfolio__card-folder">
         <div className="portfolio__card-tab">
           <span>{isVideo ? 'VIDEO' : 'IMG'}</span>
         </div>
         <div className="portfolio__card-body">
           {isVideo ? (
-            posterOk && item.poster ? (
-              <img className="portfolio__card-media" src={item.poster}
-                alt={item.alt} loading="lazy"
-                onError={() => setPosterOk(false)} />
-            ) : (
-              <div className="portfolio__card-poster">
-                <svg className="portfolio__card-play" viewBox="0 0 24 24" fill="none">
-                  <circle cx="12" cy="12" r="10" stroke="white" strokeWidth="1.5" opacity="0.6"/>
-                  <path d="M10 8l6 4-6 4V8z" fill="white"/>
+            <>
+              {posterOk && item.poster ? (
+                <img className="portfolio__card-media" src={item.poster}
+                  alt={item.alt} loading="lazy"
+                  onError={() => setPosterOk(false)} />
+              ) : (
+                <div className="portfolio__card-poster" />
+              )}
+              {/* 圆形播放按钮 — 视频卡片的唯一交互入口 */}
+              <button className="portfolio__card-play-btn" onClick={handlePlayClick}
+                aria-label="播放视频">
+                <svg viewBox="0 0 48 48" fill="none">
+                  <circle cx="24" cy="24" r="22" fill="rgba(255,255,255,0.15)" stroke="rgba(255,255,255,0.5)" strokeWidth="1.5"/>
+                  <path d="M19 14l14 10-14 10V14z" fill="white"/>
                 </svg>
-              </div>
-            )
+              </button>
+            </>
           ) : (
             <img className="portfolio__card-media" src={item.src}
               alt={item.alt} loading="lazy" />
@@ -213,8 +226,11 @@ function ScrollableCards({ items, onPreview, videoCache }) {
     };
     const handleUp = () => {
       drag.current = null;
-      isDragging.current = false;
-      setDragging(false);
+      // 延迟100ms重置拖动状态，确保松手后的click事件仍看到dragging=true
+      setTimeout(() => {
+        isDragging.current = false;
+        setDragging(false);
+      }, 100);
       if (trackRef.current) trackRef.current.style.cursor = 'grab';
       if (scrollEndTimer.current) clearTimeout(scrollEndTimer.current);
       scrollEndTimer.current = setTimeout(() => {
