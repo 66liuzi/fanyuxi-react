@@ -25,6 +25,20 @@ jobs:
         with:
           node-version: 20
 
+      - name: Compress videos for web deployment
+        run: |
+          sudo apt-get update && sudo apt-get install -y ffmpeg
+          VDIR="public/media/videos"
+          for f in "$VDIR"/*.mp4; do
+            echo "Compressing: $f ($(du -sh "$f" | cut -f1))"
+            tmp="${f}.tmp.mp4"
+            ffmpeg -i "$f" -c:v libx264 -crf 28 -preset slow -vf "scale=640:-2" -an -movflags +faststart "$tmp" -y 2>/dev/null
+            if [ -f "$tmp" ]; then
+              mv "$tmp" "$f"
+              echo "  → $(du -sh "$f" | cut -f1)"
+            fi
+          done
+
       - name: Install dependencies
         run: npm install
 
