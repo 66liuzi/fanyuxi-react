@@ -10,26 +10,26 @@ import './Portfolio.css';
 // 图片原始尺寸：
 // 201400=768×1360(竖), 201401=1280×2267(竖), 201402=1280×2267(竖),
 // 201403=752×1360(竖), 201406=1217×679(横), 201407=1254×708(横)
-// Vite 会根据 base 配置自动注入 BASE_URL（GitHub Pages 下为 /fanyuxi-react/）
-const BASE = import.meta.env.BASE_URL;
+// 媒体文件已迁移至腾讯云COS（国内加速），不再从 GitHub Pages 加载
+const COS_BASE = 'https://huazi-1324532363.cos.ap-beijing.myqcloud.com';
 
 const imageItems = [
-  { id: 1, type: 'image', src: `${BASE}media/images/201400.JPG`, alt: 'Photo 1', w: 768,  h: 1360 },
-  { id: 2, type: 'image', src: `${BASE}media/images/201401.JPG`, alt: 'Photo 2', w: 1280, h: 2267 },
-  { id: 3, type: 'image', src: `${BASE}media/images/201402.JPG`, alt: 'Photo 3', w: 1280, h: 2267 },
-  { id: 4, type: 'image', src: `${BASE}media/images/201403.JPG`, alt: 'Photo 4', w: 752,  h: 1360 },
-  { id: 5, type: 'image', src: `${BASE}media/images/201406.JPG`, alt: 'Photo 5', w: 1217, h: 679  },
-  { id: 6, type: 'image', src: `${BASE}media/images/201407.JPG`, alt: 'Photo 6', w: 1254, h: 708  },
+  { id: 1, type: 'image', src: `${COS_BASE}/media/images/201400.JPG`, alt: 'Photo 1', w: 768,  h: 1360 },
+  { id: 2, type: 'image', src: `${COS_BASE}/media/images/201401.JPG`, alt: 'Photo 2', w: 1280, h: 2267 },
+  { id: 3, type: 'image', src: `${COS_BASE}/media/images/201402.JPG`, alt: 'Photo 3', w: 1280, h: 2267 },
+  { id: 4, type: 'image', src: `${COS_BASE}/media/images/201403.JPG`, alt: 'Photo 4', w: 752,  h: 1360 },
+  { id: 5, type: 'image', src: `${COS_BASE}/media/images/201406.JPG`, alt: 'Photo 5', w: 1217, h: 679  },
+  { id: 6, type: 'image', src: `${COS_BASE}/media/images/201407.JPG`, alt: 'Photo 6', w: 1254, h: 708  },
 ];
 
 // 视频全部为 mp4 格式，浏览器可播放
-// poster 为视频封面缩略图（构建时由 ffmpeg 从视频第一帧提取）
+// 视频封面通过JS从视频第一帧动态提取，不再依赖构建时ffmpeg生成poster
 const videoItems = [
-  { id: 1, type: 'video', src: `${BASE}media/videos/201410_raw.mp4`,    poster: `${BASE}media/videos/poster_201410_raw.jpg`, alt: 'Video 1', w: 1280, h: 720 },
-  { id: 2, type: 'video', src: `${BASE}media/videos/201411_raw.mp4`,    poster: `${BASE}media/videos/poster_201411_raw.jpg`, alt: 'Video 2', w: 1280, h: 720 },
-  { id: 3, type: 'video', src: `${BASE}media/videos/201412.mp4`,        poster: `${BASE}media/videos/poster_201412.jpg`,     alt: 'Video 3', w: 1280, h: 720 },
-  { id: 4, type: 'video', src: `${BASE}media/videos/201209_raw.mp4`,    poster: `${BASE}media/videos/poster_201209_raw.jpg`, alt: 'Video 4', w: 1280, h: 720 },
-  { id: 5, type: 'video', src: `${BASE}media/videos/20260624003620.mp4`, poster: `${BASE}media/videos/poster_20260624003620.jpg`, alt: 'Video 5', w: 1280, h: 720 },
+  { id: 1, type: 'video', src: `${COS_BASE}/media/videos/201410_raw.mp4`,    alt: 'Video 1', w: 1280, h: 720 },
+  { id: 2, type: 'video', src: `${COS_BASE}/media/videos/201411_raw.mp4`,    alt: 'Video 2', w: 1280, h: 720 },
+  { id: 3, type: 'video', src: `${COS_BASE}/media/videos/201412.mp4`,        alt: 'Video 3', w: 1280, h: 720 },
+  { id: 4, type: 'video', src: `${COS_BASE}/media/videos/201209_raw.mp4`,    alt: 'Video 4', w: 1280, h: 720 },
+  { id: 5, type: 'video', src: `${COS_BASE}/media/videos/20260624003620.mp4`, alt: 'Video 5', w: 1280, h: 720 },
 ];
 
 /* =============================================
@@ -67,10 +67,11 @@ function calcCardSteps(items) {
 /* =============================================
    卡片组件（带文件夹装饰，无文字，尺寸自适应）
    ============================================= */
-function MediaCard({ item, cardW, cardH, onPreview, videoCache, dragging }) {
+function MediaCard({ item, cardW, cardH, onPreview, videoCache, videoPoster, dragging }) {
   const isVideo = item.type === 'video';
   const isCached = isVideo && videoCache && videoCache[item.src];
-  const [posterOk, setPosterOk] = useState(true);
+  // 视频封面：优先使用JS动态提取的poster，否则显示渐变占位
+  const posterUrl = isVideo && videoPoster?.[item.src];
 
   // 图片卡片：整个卡片可点击；视频卡片：仅播放按钮可点击
   const handleCardClick = (e) => {
@@ -97,10 +98,9 @@ function MediaCard({ item, cardW, cardH, onPreview, videoCache, dragging }) {
         <div className="portfolio__card-body">
           {isVideo ? (
             <>
-              {posterOk && item.poster ? (
-                <img className="portfolio__card-media" src={item.poster}
-                  alt={item.alt} loading="lazy"
-                  onError={() => setPosterOk(false)} />
+              {posterUrl ? (
+                <img className="portfolio__card-media" src={posterUrl}
+                  alt={item.alt} loading="lazy" />
               ) : (
                 <div className="portfolio__card-poster" />
               )}
@@ -134,7 +134,7 @@ function MediaCard({ item, cardW, cardH, onPreview, videoCache, dragging }) {
    支持不同宽度的卡片，纵向居中对齐
    鼠标拖动滚动：mousedown → window级mousemove/mouseup
    ============================================= */
-function ScrollableCards({ items, onPreview, videoCache }) {
+function ScrollableCards({ items, onPreview, videoCache, videoPoster }) {
   const trackRef = useRef(null);
   const drag = useRef(null);           // { startX, scrollStart } 鼠标拖动数据
   const isDragging = useRef(false);     // 是否正在拖动（超过阈值才算）
@@ -288,7 +288,7 @@ function ScrollableCards({ items, onPreview, videoCache }) {
           sizedItems.map((it, i) => (
             <MediaCard key={`${copy}-${it.id}-${i}`}
               item={it} cardW={it.cardW} cardH={it.cardH}
-              onPreview={onPreview} videoCache={videoCache}
+              onPreview={onPreview} videoCache={videoCache} videoPoster={videoPoster}
               dragging={dragging} />
           ))
         )}
@@ -321,7 +321,7 @@ function Viewer({ item, onClose, videoCache }) {
       <div className="portfolio__viewer-content" onClick={e => e.stopPropagation()}>
         {isVideo ? (
           <video className="portfolio__viewer-media" src={videoSrc}
-            poster={item.poster} controls autoPlay playsInline
+            controls autoPlay playsInline
             style={{ objectFit: 'contain' }} />
         ) : (
           <img className="portfolio__viewer-media" src={item.src} alt={item.alt}
@@ -341,7 +341,7 @@ function Viewer({ item, onClose, videoCache }) {
 /* =============================================
    文件夹组件
    ============================================= */
-function Folder({ title, color, items, onPreview, videoCache }) {
+function Folder({ title, color, items, onPreview, videoCache, videoPoster }) {
   const [hover, setHover] = useState(false);
   return (
     <div className={`portfolio__folder${hover ? ' portfolio__folder--open' : ''}`}
@@ -351,7 +351,7 @@ function Folder({ title, color, items, onPreview, videoCache }) {
         <span>{title}</span>
       </div>
       <div className="portfolio__folder-body" style={{ borderColor: color }}>
-        <ScrollableCards items={items} onPreview={onPreview} videoCache={videoCache} />
+        <ScrollableCards items={items} onPreview={onPreview} videoCache={videoCache} videoPoster={videoPoster} />
       </div>
       {hover && (
         <div className="portfolio__folder-glow"
@@ -368,17 +368,68 @@ export default function Portfolio() {
   const [preview, setPreview] = useState(null);
 
   /* 视频预加载缓存：页面打开时自动下载所有视频到 blob
-     用户点击视频时，如果已缓存则 blob URL 即时播放；否则降级用原始 URL */
+     用户点击视频时，如果已缓存则 blob URL 即时播放；否则降级用原始 URL
+     COS 跨域 fetch 需要 CORS 配置，失败时静默降级 */
   const [videoCache, setVideoCache] = useState({});   // src → blobUrl
   const blobUrlsRef = useRef([]);
 
+  /* 视频封面提取：用隐藏 video 元素加载视频第一帧，通过 canvas 生成 poster 图片
+     COS 视频不需要构建时 ffmpeg 生成 poster，前端动态提取即可 */
+  const [videoPoster, setVideoPoster] = useState({}); // src → posterUrl
+  const posterUrlsRef = useRef([]);
+
   useEffect(() => {
     let cancelled = false;
-    const preload = async () => {
+
+    // 1. 提取视频封面（优先执行，因为需要 video 元素）
+    const extractPosters = async () => {
       for (const v of videoItems) {
         if (cancelled) break;
         try {
-          const res = await fetch(v.src);
+          // 创建隐藏 video 元素加载视频第一帧
+          const video = document.createElement('video');
+          video.crossOrigin = 'anonymous';
+          video.preload = 'metadata';
+          video.muted = true;
+          video.playsInline = true;
+          video.src = v.src;
+
+          await new Promise((resolve, reject) => {
+            video.onloadeddata = resolve;
+            video.onerror = reject;
+            // 2秒超时：如果视频加载慢，跳过此封面
+            setTimeout(() => resolve(), 2000);
+          });
+
+          if (cancelled) break;
+
+          // 用 canvas 截取第一帧
+          video.currentTime = 0;
+          await new Promise(r => { video.onseeked = r; setTimeout(r, 500); });
+
+          const canvas = document.createElement('canvas');
+          canvas.width = Math.min(video.videoWidth, 320);
+          canvas.height = Math.min(video.videoHeight, 320 * (video.videoHeight / video.videoWidth));
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+          const posterUrl = canvas.toDataURL('image/jpeg', 0.7);
+          posterUrlsRef.current.push(posterUrl);
+          setVideoPoster(prev => ({ ...prev, [v.src]: posterUrl }));
+
+          video.src = ''; // 释放 video 元素
+        } catch {
+          // 封面提取失败时静默忽略，卡片显示渐变占位
+        }
+      }
+    };
+
+    // 2. 预加载视频 blob 缓存
+    const preloadVideos = async () => {
+      for (const v of videoItems) {
+        if (cancelled) break;
+        try {
+          const res = await fetch(v.src, { mode: 'cors' });
           const blob = await res.blob();
           if (!cancelled) {
             const url = URL.createObjectURL(blob);
@@ -386,14 +437,17 @@ export default function Portfolio() {
             setVideoCache(prev => ({ ...prev, [v.src]: url }));
           }
         } catch {
-          // 预加载失败时静默忽略，Viewer 会降级使用原始 URL
+          // 跨域 fetch 失败（CORS未配置）时静默忽略，Viewer 会降级使用原始 URL
         }
       }
     };
-    preload();
+
+    extractPosters().then(() => preloadVideos());
+
     return () => {
       cancelled = true;
       blobUrlsRef.current.forEach(url => URL.revokeObjectURL(url));
+      // posterUrl 是 data URL，不需要 revoke
     };
   }, []);
 
@@ -422,7 +476,7 @@ export default function Portfolio() {
         <Folder title="Image Portfolio" color="#818cf8"
           items={imageItems} onPreview={setPreview} />
         <Folder title="Video Portfolio" color="#c084fc"
-          items={videoItems} onPreview={setPreview} videoCache={videoCache} />
+          items={videoItems} onPreview={setPreview} videoCache={videoCache} videoPoster={videoPoster} />
       </div>
       {preview && <Viewer item={preview} onClose={() => setPreview(null)} videoCache={videoCache} />}
     </section>
