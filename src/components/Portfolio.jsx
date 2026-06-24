@@ -10,22 +10,25 @@ import './Portfolio.css';
 // 图片原始尺寸：
 // 201400=768×1360(竖), 201401=1280×2267(竖), 201402=1280×2267(竖),
 // 201403=752×1360(竖), 201406=1217×679(横), 201407=1254×708(横)
+// Vite 会根据 base 配置自动注入 BASE_URL（GitHub Pages 下为 /fanyuxi-react/）
+const BASE = import.meta.env.BASE_URL;
+
 const imageItems = [
-  { id: 1, type: 'image', src: '/media/images/201400.JPG', alt: 'Photo 1', w: 768,  h: 1360 },
-  { id: 2, type: 'image', src: '/media/images/201401.JPG', alt: 'Photo 2', w: 1280, h: 2267 },
-  { id: 3, type: 'image', src: '/media/images/201402.JPG', alt: 'Photo 3', w: 1280, h: 2267 },
-  { id: 4, type: 'image', src: '/media/images/201403.JPG', alt: 'Photo 4', w: 752,  h: 1360 },
-  { id: 5, type: 'image', src: '/media/images/201406.JPG', alt: 'Photo 5', w: 1217, h: 679  },
-  { id: 6, type: 'image', src: '/media/images/201407.JPG', alt: 'Photo 6', w: 1254, h: 708  },
+  { id: 1, type: 'image', src: `${BASE}media/images/201400.JPG`, alt: 'Photo 1', w: 768,  h: 1360 },
+  { id: 2, type: 'image', src: `${BASE}media/images/201401.JPG`, alt: 'Photo 2', w: 1280, h: 2267 },
+  { id: 3, type: 'image', src: `${BASE}media/images/201402.JPG`, alt: 'Photo 3', w: 1280, h: 2267 },
+  { id: 4, type: 'image', src: `${BASE}media/images/201403.JPG`, alt: 'Photo 4', w: 752,  h: 1360 },
+  { id: 5, type: 'image', src: `${BASE}media/images/201406.JPG`, alt: 'Photo 5', w: 1217, h: 679  },
+  { id: 6, type: 'image', src: `${BASE}media/images/201407.JPG`, alt: 'Photo 6', w: 1254, h: 708  },
 ];
 
 // 视频全部为 mp4 格式，浏览器可播放
 const videoItems = [
-  { id: 1, type: 'video', src: '/media/videos/201410_raw.mp4',    alt: 'Video 1', w: 1280, h: 720 },
-  { id: 2, type: 'video', src: '/media/videos/201411_raw.mp4',    alt: 'Video 2', w: 1280, h: 720 },
-  { id: 3, type: 'video', src: '/media/videos/201412.mp4',        alt: 'Video 3', w: 1280, h: 720 },
-  { id: 4, type: 'video', src: '/media/videos/201209_raw.mp4',    alt: 'Video 4', w: 1280, h: 720 },
-  { id: 5, type: 'video', src: '/media/videos/20260624003620.mp4', alt: 'Video 5', w: 1280, h: 720 },
+  { id: 1, type: 'video', src: `${BASE}media/videos/201410_raw.mp4`,    alt: 'Video 1', w: 1280, h: 720 },
+  { id: 2, type: 'video', src: `${BASE}media/videos/201411_raw.mp4`,    alt: 'Video 2', w: 1280, h: 720 },
+  { id: 3, type: 'video', src: `${BASE}media/videos/201412.mp4`,        alt: 'Video 3', w: 1280, h: 720 },
+  { id: 4, type: 'video', src: `${BASE}media/videos/201209_raw.mp4`,    alt: 'Video 4', w: 1280, h: 720 },
+  { id: 5, type: 'video', src: `${BASE}media/videos/20260624003620.mp4`, alt: 'Video 5', w: 1280, h: 720 },
 ];
 
 /* =============================================
