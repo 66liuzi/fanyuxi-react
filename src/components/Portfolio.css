@@ -238,6 +238,33 @@
   filter: drop-shadow(0 2px 8px rgba(0,0,0,0.5));
 }
 
+/* 视频缓存状态指示器：右下角小圆点 */
+.portfolio__card-cache {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  z-index: 5;
+  pointer-events: none;
+}
+
+.portfolio__card-cache--loading {
+  background: rgba(96, 165, 250, 0.8);
+  animation: cachePulse 1.5s ease-in-out infinite;
+}
+
+.portfolio__card-cache--done {
+  background: rgba(74, 222, 128, 0.9);
+  box-shadow: 0 0 6px rgba(74, 222, 128, 0.4);
+}
+
+@keyframes cachePulse {
+  0%, 100% { opacity: 0.5; transform: scale(0.8); }
+  50%      { opacity: 1;   transform: scale(1); }
+}
+
 /* 光效装饰 */
 .portfolio__card-glow {
   position: absolute;
