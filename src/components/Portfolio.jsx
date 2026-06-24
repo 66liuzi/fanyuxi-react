@@ -67,15 +67,21 @@ function calcCardSteps(items) {
 /* =============================================
    卡片组件（带文件夹装饰，无文字，尺寸自适应）
    ============================================= */
-function MediaCard({ item, cardW, cardH, onPreview, videoCache }) {
+function MediaCard({ item, cardW, cardH, onPreview, videoCache, dragging }) {
   const isVideo = item.type === 'video';
   const isCached = isVideo && videoCache && videoCache[item.src];
   const [posterOk, setPosterOk] = useState(true);
 
+  // 拖动时不触发点击（避免拖动后误打开预览）
+  const handleClick = (e) => {
+    if (dragging) { e.preventDefault(); e.stopPropagation(); return; }
+    onPreview(item);
+  };
+
   return (
     <div className="portfolio__card"
       style={{ width: cardW + 'px', height: cardH + 'px' }}
-      onClick={() => onPreview(item)}>
+      onClick={handleClick}>
       <div className="portfolio__card-folder">
         <div className="portfolio__card-tab">
           <span>{isVideo ? 'VIDEO' : 'IMG'}</span>
@@ -113,16 +119,19 @@ function MediaCard({ item, cardW, cardH, onPreview, videoCache }) {
 /* =============================================
    可滚动卡片列表（无限循环 + 左右按钮）
    支持不同宽度的卡片，纵向居中对齐
+   鼠标拖动滚动：mousedown → window级mousemove/mouseup
    ============================================= */
 function ScrollableCards({ items, onPreview, videoCache }) {
   const trackRef = useRef(null);
-  const drag = useRef(null);
+  const drag = useRef(null);           // { startX, scrollStart } 鼠标拖动数据
+  const isDragging = useRef(false);     // 是否正在拖动（超过阈值才算）
   const autoRef = useRef(null);
   const scrollEndTimer = useRef(null);
   const userScrolling = useRef(false);
 
   const canScroll = useRef({ left: false, right: true });
   const [btn, setBtn] = useState({ left: false, right: true });
+  const [dragging, setDragging] = useState(false); // 传给 MediaCard，阻止拖动时的 onClick
 
   // 预计算带尺寸的 items
   const sizedItems = calcCardSteps(items);
@@ -184,30 +193,54 @@ function ScrollableCards({ items, onPreview, videoCache }) {
     return () => clearInterval(autoRef.current);
   }, [onScroll]);
 
-  /* 鼠标拖动 */
-  const onDown = e => {
+  /* 鼠标拖动 — window 级监听，拖动时鼠标移出轨道也不中断 */
+  const DRAG_THRESHOLD = 5; // 最小拖动距离，低于此值视为点击
+
+  useEffect(() => {
+    const handleMove = (e) => {
+      if (!drag.current) return;
+      const dx = e.pageX - drag.current.startX;
+      // 超过阈值才算真正拖动
+      if (!isDragging.current && Math.abs(dx) > DRAG_THRESHOLD) {
+        isDragging.current = true;
+        setDragging(true);
+      }
+      if (!isDragging.current) return;
+      const el = trackRef.current;
+      if (!el) return;
+      el.scrollLeft = drag.current.scrollStart - dx;
+      onScroll();
+    };
+    const handleUp = () => {
+      drag.current = null;
+      isDragging.current = false;
+      setDragging(false);
+      if (trackRef.current) trackRef.current.style.cursor = 'grab';
+      if (scrollEndTimer.current) clearTimeout(scrollEndTimer.current);
+      scrollEndTimer.current = setTimeout(() => {
+        userScrolling.current = false;
+        loopCheck();
+      }, 150);
+    };
+    window.addEventListener('mousemove', handleMove);
+    window.addEventListener('mouseup', handleUp);
+    return () => {
+      window.removeEventListener('mousemove', handleMove);
+      window.removeEventListener('mouseup', handleUp);
+    };
+  }, [onScroll, loopCheck, oneSetWidth]);
+
+  const onDown = (e) => {
     const el = trackRef.current;
     if (!el) return;
+    // 忽略在按钮上的 mousedown
+    if (e.target.closest('.portfolio__scroll-btn')) return;
     if (scrollEndTimer.current) clearTimeout(scrollEndTimer.current);
-    drag.current = { x: e.pageX, s: el.scrollLeft };
+    drag.current = { startX: e.pageX, scrollStart: el.scrollLeft };
+    isDragging.current = false;
+    setDragging(false);
     el.style.cursor = 'grabbing';
-  };
-  const onMove = e => {
-    if (!drag.current) return;
-    e.preventDefault();
-    const el = trackRef.current;
-    el.scrollLeft = drag.current.s - (e.pageX - drag.current.x);
-    onScroll();
-  };
-  const onUp = () => {
-    if (!trackRef.current) return;
-    trackRef.current.style.cursor = 'grab';
-    drag.current = null;
-    if (scrollEndTimer.current) clearTimeout(scrollEndTimer.current);
-    scrollEndTimer.current = setTimeout(() => {
-      userScrolling.current = false;
-      loopCheck();
-    }, 150);
+    e.preventDefault(); // 阻止默认的文本选择行为
   };
 
   /* 按钮点击 */
@@ -233,14 +266,14 @@ function ScrollableCards({ items, onPreview, videoCache }) {
 
       <div ref={trackRef} className="portfolio__track"
         onScroll={onScroll}
-        onMouseDown={onDown} onMouseMove={onMove}
-        onMouseUp={onUp} onMouseLeave={onUp}>
+        onMouseDown={onDown}>
         {/* 渲染 3 份实现无限循环 */}
         {[0,1,2].flatMap(copy =>
           sizedItems.map((it, i) => (
             <MediaCard key={`${copy}-${it.id}-${i}`}
               item={it} cardW={it.cardW} cardH={it.cardH}
-              onPreview={onPreview} videoCache={videoCache} />
+              onPreview={onPreview} videoCache={videoCache}
+              dragging={dragging} />
           ))
         )}
       </div>
