@@ -81,8 +81,7 @@ function MediaCard({ item, cardW, cardH, onPreview, videoCache }) {
 
   // 播放按钮点击（仅视频卡片）
   const handlePlayClick = (e) => {
-    e.stopPropagation(); // 阻止冒泡到卡片 div
-    if (dragging) { e.preventDefault(); return; }
+    e.stopPropagation();
     onPreview(item);
   };
 
