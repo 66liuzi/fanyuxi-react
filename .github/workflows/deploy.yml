@@ -25,18 +25,37 @@ jobs:
         with:
           node-version: 20
 
-      - name: Compress videos for web deployment
+      - name: Optimize media for web deployment
         run: |
-          sudo apt-get update && sudo apt-get install -y ffmpeg
+          sudo apt-get update && sudo apt-get install -y ffmpeg imagemagick
+
+          # === 压缩视频：640p, 去音频, faststart ===
           VDIR="public/media/videos"
           for f in "$VDIR"/*.mp4; do
-            echo "Compressing: $f ($(du -sh "$f" | cut -f1))"
+            echo "Compressing video: $f ($(du -sh "$f" | cut -f1))"
             tmp="${f}.tmp.mp4"
             ffmpeg -i "$f" -c:v libx264 -crf 28 -preset slow -vf "scale=640:-2" -an -movflags +faststart "$tmp" -y 2>/dev/null
             if [ -f "$tmp" ]; then
               mv "$tmp" "$f"
               echo "  → $(du -sh "$f" | cut -f1)"
             fi
+          done
+
+          # === 提取视频封面图（第一帧） ===
+          for f in "$VDIR"/*.mp4; do
+            basename=$(basename "$f" .mp4)
+            poster="$VDIR/poster_${basename}.jpg"
+            echo "Extracting poster: $poster"
+            ffmpeg -i "$f" -vframes 1 -vf "scale=320:-2" -q:v 4 "$poster" -y 2>/dev/null
+          done
+
+          # === 压缩图片：最大宽度800px ===
+          IDIR="public/media/images"
+          for f in "$IDIR"/*.jpg "$IDIR"/*.JPG "$IDIR"/*.png "$IDIR"/*.jpeg; do
+            [ -f "$f" ] || continue
+            echo "Compressing image: $f ($(du -sh "$f" | cut -f1))"
+            convert "$f" -resize '800x>' -quality 80 "$f"
+            echo "  → $(du -sh "$f" | cut -f1)"
           done
 
       - name: Install dependencies
