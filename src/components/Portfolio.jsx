@@ -67,8 +67,9 @@ function calcCardSteps(items) {
 /* =============================================
    卡片组件（带文件夹装饰，无文字，尺寸自适应）
    ============================================= */
-function MediaCard({ item, cardW, cardH, onPreview }) {
+function MediaCard({ item, cardW, cardH, onPreview, videoCache }) {
   const isVideo = item.type === 'video';
+  const isCached = isVideo && videoCache && videoCache[item.src];
   const [posterOk, setPosterOk] = useState(true);
 
   return (
@@ -97,6 +98,10 @@ function MediaCard({ item, cardW, cardH, onPreview }) {
             <img className="portfolio__card-media" src={item.src}
               alt={item.alt} loading="lazy" />
           )}
+          {/* 缓存状态指示：绿色圆点=已缓存，蓝色脉冲=正在缓存 */}
+          {isVideo && (
+            <div className={`portfolio__card-cache ${isCached ? 'portfolio__card-cache--done' : 'portfolio__card-cache--loading'}`} />
+          )}
           <div className="portfolio__card-glow" />
         </div>
         <div className="portfolio__card-reflect" />
@@ -109,7 +114,7 @@ function MediaCard({ item, cardW, cardH, onPreview }) {
    可滚动卡片列表（无限循环 + 左右按钮）
    支持不同宽度的卡片，纵向居中对齐
    ============================================= */
-function ScrollableCards({ items, onPreview }) {
+function ScrollableCards({ items, onPreview, videoCache }) {
   const trackRef = useRef(null);
   const drag = useRef(null);
   const autoRef = useRef(null);
@@ -235,7 +240,7 @@ function ScrollableCards({ items, onPreview }) {
           sizedItems.map((it, i) => (
             <MediaCard key={`${copy}-${it.id}-${i}`}
               item={it} cardW={it.cardW} cardH={it.cardH}
-              onPreview={onPreview} />
+              onPreview={onPreview} videoCache={videoCache} />
           ))
         )}
       </div>
@@ -257,14 +262,16 @@ function ScrollableCards({ items, onPreview }) {
 /* =============================================
    全屏预览器
    ============================================= */
-function Viewer({ item, onClose }) {
+function Viewer({ item, onClose, videoCache }) {
   const isVideo = item.type === 'video';
+  // 如果视频已缓存，使用 blob URL 即时播放；否则降级用原始 URL
+  const videoSrc = isVideo && videoCache?.[item.src] ? videoCache[item.src] : item.src;
 
   return (
     <div className="portfolio__viewer" onClick={onClose}>
       <div className="portfolio__viewer-content" onClick={e => e.stopPropagation()}>
         {isVideo ? (
-          <video className="portfolio__viewer-media" src={item.src}
+          <video className="portfolio__viewer-media" src={videoSrc}
             poster={item.poster} controls autoPlay playsInline
             style={{ objectFit: 'contain' }} />
         ) : (
@@ -285,7 +292,7 @@ function Viewer({ item, onClose }) {
 /* =============================================
    文件夹组件
    ============================================= */
-function Folder({ title, color, items, onPreview }) {
+function Folder({ title, color, items, onPreview, videoCache }) {
   const [hover, setHover] = useState(false);
   return (
     <div className={`portfolio__folder${hover ? ' portfolio__folder--open' : ''}`}
@@ -295,7 +302,7 @@ function Folder({ title, color, items, onPreview }) {
         <span>{title}</span>
       </div>
       <div className="portfolio__folder-body" style={{ borderColor: color }}>
-        <ScrollableCards items={items} onPreview={onPreview} />
+        <ScrollableCards items={items} onPreview={onPreview} videoCache={videoCache} />
       </div>
       {hover && (
         <div className="portfolio__folder-glow"
@@ -310,6 +317,37 @@ function Folder({ title, color, items, onPreview }) {
    ============================================= */
 export default function Portfolio() {
   const [preview, setPreview] = useState(null);
+
+  /* 视频预加载缓存：页面打开时自动下载所有视频到 blob
+     用户点击视频时，如果已缓存则 blob URL 即时播放；否则降级用原始 URL */
+  const [videoCache, setVideoCache] = useState({});   // src → blobUrl
+  const blobUrlsRef = useRef([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const preload = async () => {
+      for (const v of videoItems) {
+        if (cancelled) break;
+        try {
+          const res = await fetch(v.src);
+          const blob = await res.blob();
+          if (!cancelled) {
+            const url = URL.createObjectURL(blob);
+            blobUrlsRef.current.push(url);
+            setVideoCache(prev => ({ ...prev, [v.src]: url }));
+          }
+        } catch {
+          // 预加载失败时静默忽略，Viewer 会降级使用原始 URL
+        }
+      }
+    };
+    preload();
+    return () => {
+      cancelled = true;
+      blobUrlsRef.current.forEach(url => URL.revokeObjectURL(url));
+    };
+  }, []);
+
   return (
     <section className="portfolio" id="portfolio">
       {/* LightRays 背景层 */}
@@ -335,9 +373,9 @@ export default function Portfolio() {
         <Folder title="Image Portfolio" color="#818cf8"
           items={imageItems} onPreview={setPreview} />
         <Folder title="Video Portfolio" color="#c084fc"
-          items={videoItems} onPreview={setPreview} />
+          items={videoItems} onPreview={setPreview} videoCache={videoCache} />
       </div>
-      {preview && <Viewer item={preview} onClose={() => setPreview(null)} />}
+      {preview && <Viewer item={preview} onClose={() => setPreview(null)} videoCache={videoCache} />}
     </section>
   );
 }
