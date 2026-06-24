@@ -23,13 +23,13 @@ const imageItems = [
 ];
 
 // 视频全部为 mp4 格式，浏览器可播放
-// 视频封面通过JS从视频第一帧动态提取，不再依赖构建时ffmpeg生成poster
+// 视频封面已预先生成并上传到COS，直接从COS加载
 const videoItems = [
-  { id: 1, type: 'video', src: `${COS_BASE}/media/videos/201410_raw.mp4`,    alt: 'Video 1', w: 1280, h: 720 },
-  { id: 2, type: 'video', src: `${COS_BASE}/media/videos/201411_raw.mp4`,    alt: 'Video 2', w: 1280, h: 720 },
-  { id: 3, type: 'video', src: `${COS_BASE}/media/videos/201412.mp4`,        alt: 'Video 3', w: 1280, h: 720 },
-  { id: 4, type: 'video', src: `${COS_BASE}/media/videos/201209_raw.mp4`,    alt: 'Video 4', w: 1280, h: 720 },
-  { id: 5, type: 'video', src: `${COS_BASE}/media/videos/20260624003620.mp4`, alt: 'Video 5', w: 1280, h: 720 },
+  { id: 1, type: 'video', src: `${COS_BASE}/media/videos/201410_raw.mp4`,    alt: 'Video 1', w: 1280, h: 720, poster: `${COS_BASE}/media/video-posters/201410_raw_poster.jpg` },
+  { id: 2, type: 'video', src: `${COS_BASE}/media/videos/201411_raw.mp4`,    alt: 'Video 2', w: 1280, h: 720, poster: `${COS_BASE}/media/video-posters/201411_raw_poster.jpg` },
+  { id: 3, type: 'video', src: `${COS_BASE}/media/videos/201412.mp4`,        alt: 'Video 3', w: 1280, h: 720, poster: `${COS_BASE}/media/video-posters/201412_poster.jpg` },
+  { id: 4, type: 'video', src: `${COS_BASE}/media/videos/201209_raw.mp4`,    alt: 'Video 4', w: 1280, h: 720, poster: `${COS_BASE}/media/video-posters/201209_raw_poster.jpg` },
+  { id: 5, type: 'video', src: `${COS_BASE}/media/videos/20260624003620.mp4`, alt: 'Video 5', w: 1280, h: 720, poster: `${COS_BASE}/media/video-posters/20260624003620_poster.jpg` },
 ];
 
 /* =============================================
@@ -67,11 +67,11 @@ function calcCardSteps(items) {
 /* =============================================
    卡片组件（带文件夹装饰，无文字，尺寸自适应）
    ============================================= */
-function MediaCard({ item, cardW, cardH, onPreview, videoCache, videoPoster, dragging }) {
+function MediaCard({ item, cardW, cardH, onPreview, videoCache, dragging }) {
   const isVideo = item.type === 'video';
   const isCached = isVideo && videoCache && videoCache[item.src];
-  // 视频封面：优先使用JS动态提取的poster，否则显示渐变占位
-  const posterUrl = isVideo && videoPoster?.[item.src];
+  // 视频封面：直接使用COS上的poster图片
+  const posterUrl = isVideo && item.poster;
 
   // 图片卡片：整个卡片可点击；视频卡片：仅播放按钮可点击
   const handleCardClick = (e) => {
@@ -134,7 +134,7 @@ function MediaCard({ item, cardW, cardH, onPreview, videoCache, videoPoster, dra
    支持不同宽度的卡片，纵向居中对齐
    鼠标拖动滚动：mousedown → window级mousemove/mouseup
    ============================================= */
-function ScrollableCards({ items, onPreview, videoCache, videoPoster }) {
+function ScrollableCards({ items, onPreview, videoCache }) {
   const trackRef = useRef(null);
   const drag = useRef(null);           // { startX, scrollStart } 鼠标拖动数据
   const isDragging = useRef(false);     // 是否正在拖动（超过阈值才算）
@@ -312,7 +312,7 @@ function ScrollableCards({ items, onPreview, videoCache, videoPoster }) {
           sizedItems.map((it, i) => (
             <MediaCard key={`${copy}-${it.id}-${i}`}
               item={it} cardW={it.cardW} cardH={it.cardH}
-              onPreview={onPreview} videoCache={videoCache} videoPoster={videoPoster}
+              onPreview={onPreview} videoCache={videoCache}
               dragging={dragging} />
           ))
         )}
@@ -354,7 +354,7 @@ function Viewer({ item, onClose, videoCache }) {
 /* =============================================
    文件夹组件
    ============================================= */
-function Folder({ title, color, items, onPreview, videoCache, videoPoster, description }) {
+function Folder({ title, color, items, onPreview, videoCache, description }) {
   const [hover, setHover] = useState(false);
   return (
     <div className={`portfolio__folder${hover ? ' portfolio__folder--open' : ''}`}
@@ -367,7 +367,7 @@ function Folder({ title, color, items, onPreview, videoCache, videoPoster, descr
         {description && (
           <p className="portfolio__folder-desc">{description}</p>
         )}
-        <ScrollableCards items={items} onPreview={onPreview} videoCache={videoCache} videoPoster={videoPoster} />
+        <ScrollableCards items={items} onPreview={onPreview} videoCache={videoCache} />
       </div>
       {hover && (
         <div className="portfolio__folder-glow"
@@ -389,93 +389,10 @@ export default function Portfolio() {
   const [videoCache, setVideoCache] = useState({});   // src → blobUrl
   const blobUrlsRef = useRef([]);
 
-  /* 视频封面提取：用隐藏 video 元素加载视频第一帧，通过 canvas 生成 poster 图片
-     COS 视频不需要构建时 ffmpeg 生成 poster，前端动态提取即可 */
-  const [videoPoster, setVideoPoster] = useState({}); // src → posterUrl
-  const posterUrlsRef = useRef([]);
-
   useEffect(() => {
     let cancelled = false;
 
-    // 1. 提取视频封面（优先执行）
-    // 方法：创建隐藏 video 元素，seek 到第 0.1 秒后用 canvas 截图
-    // 注意：video 元素必须加入 DOM 才能在某些浏览器中正常触发 loadeddata 事件
-    const extractPosters = async () => {
-      for (const v of videoItems) {
-        if (cancelled) break;
-        try {
-          const video = document.createElement('video');
-          video.crossOrigin = 'anonymous';
-          video.preload = 'auto';
-          video.muted = true;
-          video.playsInline = true;
-          video.webkitPlaysInline = true;
-          // 必须加入 DOM，否则部分浏览器不会加载视频数据
-          video.style.position = 'absolute';
-          video.style.left = '-9999px';
-          video.style.top = '-9999px';
-          video.style.width = '1px';
-          video.style.height = '1px';
-          document.body.appendChild(video);
-
-          video.src = v.src;
-
-          // 等待视频有足够数据可以截图
-          await new Promise((resolve, reject) => {
-            const onLoaded = () => {
-              video.onloadeddata = null;
-              video.onerror = null;
-              resolve();
-            };
-            video.onloadeddata = onLoaded;
-            video.onerror = () => {
-              video.onloadeddata = null;
-              video.onerror = null;
-              reject(new Error('video load error'));
-            };
-            setTimeout(() => {
-              video.onloadeddata = null;
-              video.onerror = null;
-              reject(new Error('timeout'));
-            }, 5000);
-          });
-
-          if (cancelled) {
-            document.body.removeChild(video);
-            break;
-          }
-
-          // seek 到第 0.1 秒（避免 seek 到 0 时某些浏览器不触发 seeked）
-          video.currentTime = 0.1;
-          await new Promise(r => {
-            const onSeeked = () => {
-              video.onseeked = null;
-              r();
-            };
-            video.onseeked = onSeeked;
-            setTimeout(r, 2000);
-          });
-
-          const canvas = document.createElement('canvas');
-          const maxW = 320;
-          const ratio = video.videoWidth / video.videoHeight;
-          canvas.width = Math.min(video.videoWidth, maxW);
-          canvas.height = Math.round(canvas.width / ratio);
-          const ctx = canvas.getContext('2d');
-          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-          const posterUrl = canvas.toDataURL('image/jpeg', 0.7);
-          posterUrlsRef.current.push(posterUrl);
-          setVideoPoster(prev => ({ ...prev, [v.src]: posterUrl }));
-
-          document.body.removeChild(video);
-        } catch {
-          // 封面提取失败时静默忽略，卡片显示渐变占位
-        }
-      }
-    };
-
-    // 2. 预加载视频 blob 缓存
+    // 预加载视频 blob 缓存
     const preloadVideos = async () => {
       for (const v of videoItems) {
         if (cancelled) break;
@@ -493,12 +410,11 @@ export default function Portfolio() {
       }
     };
 
-    extractPosters().then(() => preloadVideos());
+    preloadVideos();
 
     return () => {
       cancelled = true;
       blobUrlsRef.current.forEach(url => URL.revokeObjectURL(url));
-      // posterUrl 是 data URL，不需要 revoke
     };
   }, []);
 
@@ -527,7 +443,7 @@ export default function Portfolio() {
         <Folder title="Image Portfolio" color="#818cf8"
           items={imageItems} onPreview={setPreview} />
         <Folder title="Video Portfolio" color="#c084fc" description="精选视频作品 · 点击播放按钮预览"
-          items={videoItems} onPreview={setPreview} videoCache={videoCache} videoPoster={videoPoster} />
+          items={videoItems} onPreview={setPreview} videoCache={videoCache} />
       </div>
       {preview && <Viewer item={preview} onClose={() => setPreview(null)} videoCache={videoCache} />}
     </section>
