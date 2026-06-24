@@ -241,16 +241,44 @@ function ScrollableCards({ items, onPreview, videoCache }) {
    ============================================= */
 function Viewer({ item, onClose, videoCache }) {
   const isVideo = item.type === 'video';
-  // 如果视频已缓存，使用 blob URL 即时播放；否则降级用原始 URL
+  const videoRef = useRef(null);
   const videoSrc = isVideo && videoCache?.[item.src] ? videoCache[item.src] : item.src;
+
+  // 微信兼容：手动触发播放
+  useEffect(() => {
+    if (isVideo && videoRef.current) {
+      const videoEl = videoRef.current;
+      const timer = setTimeout(() => {
+        const p = videoEl.play();
+        if (p) p.catch(() => {});
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [isVideo, videoSrc]);
+
+  const handleVideoClick = (e) => {
+    e.stopPropagation();
+    if (videoRef.current) videoRef.current.play().catch(() => {});
+  };
 
   return (
     <div className="portfolio__viewer" onClick={onClose}>
       <div className="portfolio__viewer-content" onClick={e => e.stopPropagation()}>
         {isVideo ? (
-          <video className="portfolio__viewer-media" src={videoSrc}
-            controls autoPlay playsInline
-            style={{ objectFit: 'contain' }} />
+          <video
+            ref={videoRef}
+            className="portfolio__viewer-media"
+            src={videoSrc}
+            controls
+            playsInline
+            webkit-playsInline
+            x5-video-player-type="h5"
+            x5-video-player-fullscreen="true"
+            x5-playsinline
+            preload="auto"
+            style={{ objectFit: 'contain' }}
+            onClick={handleVideoClick}
+          />
         ) : (
           <img className="portfolio__viewer-media" src={item.src} alt={item.alt}
             style={{ objectFit: 'contain' }} />
