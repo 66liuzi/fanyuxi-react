@@ -381,35 +381,16 @@
 }
 
 /* =============================================
-   左右滚动按钮
+   作品集描述文字
    ============================================= */
-.portfolio__scroll-btn {
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  z-index: 10;
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  border: 1px solid rgba(255,255,255,0.15);
-  background: rgba(255,255,255,0.08);
-  backdrop-filter: blur(20px);
-  color: rgba(255,255,255,0.7);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: background 0.3s, border-color 0.3s, transform 0.3s;
+.portfolio__folder-desc {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  color: rgba(255,255,255,0.45);
+  letter-spacing: 1px;
+  margin: 0 0 16px 0;
+  padding: 0 4px;
 }
-
-.portfolio__scroll-btn:hover {
-  background: rgba(255,255,255,0.15);
-  border-color: rgba(255,255,255,0.3);
-  transform: translateY(-50%) scale(1.1);
-}
-
-.portfolio__scroll-btn--left { left: -56px; }
-.portfolio__scroll-btn--right { right: -56px; }
 
 /* =============================================
    移动端响应式
@@ -440,9 +421,7 @@
   }
 
   .portfolio__folder-body { padding: 20px 16px; min-height: 320px; }
-
-  .portfolio__scroll-btn--left { left: -4px; }
-  .portfolio__scroll-btn--right { right: -4px; }
+  .portfolio__folder-desc { font-size: 12px; }
 }
 
 @media (max-width: 480px) {

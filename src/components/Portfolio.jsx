@@ -267,22 +267,46 @@ function ScrollableCards({ items, onPreview, videoCache, videoPoster }) {
     requestAnimationFrame(onScroll);
   };
 
+  /* 触摸拖动支持（移动端） */
+  const touchStart = useRef(null);
+  const touchScrollStart = useRef(0);
+
+  const onTouchStart = (e) => {
+    const el = trackRef.current;
+    if (!el) return;
+    const t = e.touches[0];
+    touchStart.current = { x: t.pageX, y: t.pageY };
+    touchScrollStart.current = el.scrollLeft;
+    userScrolling.current = true;
+  };
+
+  const onTouchMove = (e) => {
+    if (!touchStart.current) return;
+    const el = trackRef.current;
+    if (!el) return;
+    const t = e.touches[0];
+    const dx = t.pageX - touchStart.current.x;
+    el.scrollLeft = touchScrollStart.current - dx;
+    onScroll();
+  };
+
+  const onTouchEnd = () => {
+    touchStart.current = null;
+    if (scrollEndTimer.current) clearTimeout(scrollEndTimer.current);
+    scrollEndTimer.current = setTimeout(() => {
+      userScrolling.current = false;
+      loopCheck();
+    }, 150);
+  };
+
   return (
     <div className="portfolio__scrollable">
-      {btn.left && (
-        <button className="portfolio__scroll-btn portfolio__scroll-btn--left"
-          onClick={e => { e.stopPropagation(); scrollOne(-1); }}
-          onMouseDown={e => e.stopPropagation()}>
-          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-            <path d="M13 4l-6 6 6 6" stroke="currentColor" strokeWidth="2"
-              strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-        </button>
-      )}
-
       <div ref={trackRef} className="portfolio__track"
         onScroll={onScroll}
-        onMouseDown={onDown}>
+        onMouseDown={onDown}
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}>
         {/* 渲染 3 份实现无限循环 */}
         {[0,1,2].flatMap(copy =>
           sizedItems.map((it, i) => (
@@ -293,17 +317,6 @@ function ScrollableCards({ items, onPreview, videoCache, videoPoster }) {
           ))
         )}
       </div>
-
-      {btn.right && (
-        <button className="portfolio__scroll-btn portfolio__scroll-btn--right"
-          onClick={e => { e.stopPropagation(); scrollOne(1); }}
-          onMouseDown={e => e.stopPropagation()}>
-          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-            <path d="M7 4l6 6-6 6" stroke="currentColor" strokeWidth="2"
-              strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-        </button>
-      )}
     </div>
   );
 }
@@ -341,7 +354,7 @@ function Viewer({ item, onClose, videoCache }) {
 /* =============================================
    文件夹组件
    ============================================= */
-function Folder({ title, color, items, onPreview, videoCache, videoPoster }) {
+function Folder({ title, color, items, onPreview, videoCache, videoPoster, description }) {
   const [hover, setHover] = useState(false);
   return (
     <div className={`portfolio__folder${hover ? ' portfolio__folder--open' : ''}`}
@@ -351,6 +364,9 @@ function Folder({ title, color, items, onPreview, videoCache, videoPoster }) {
         <span>{title}</span>
       </div>
       <div className="portfolio__folder-body" style={{ borderColor: color }}>
+        {description && (
+          <p className="portfolio__folder-desc">{description}</p>
+        )}
         <ScrollableCards items={items} onPreview={onPreview} videoCache={videoCache} videoPoster={videoPoster} />
       </div>
       {hover && (
@@ -381,35 +397,70 @@ export default function Portfolio() {
   useEffect(() => {
     let cancelled = false;
 
-    // 1. 提取视频封面（优先执行，因为需要 video 元素）
+    // 1. 提取视频封面（优先执行）
+    // 方法：创建隐藏 video 元素，seek 到第 0.1 秒后用 canvas 截图
+    // 注意：video 元素必须加入 DOM 才能在某些浏览器中正常触发 loadeddata 事件
     const extractPosters = async () => {
       for (const v of videoItems) {
         if (cancelled) break;
         try {
-          // 创建隐藏 video 元素加载视频第一帧
           const video = document.createElement('video');
           video.crossOrigin = 'anonymous';
-          video.preload = 'metadata';
+          video.preload = 'auto';
           video.muted = true;
           video.playsInline = true;
+          video.webkitPlaysInline = true;
+          // 必须加入 DOM，否则部分浏览器不会加载视频数据
+          video.style.position = 'absolute';
+          video.style.left = '-9999px';
+          video.style.top = '-9999px';
+          video.style.width = '1px';
+          video.style.height = '1px';
+          document.body.appendChild(video);
+
           video.src = v.src;
 
+          // 等待视频有足够数据可以截图
           await new Promise((resolve, reject) => {
-            video.onloadeddata = resolve;
-            video.onerror = reject;
-            // 2秒超时：如果视频加载慢，跳过此封面
-            setTimeout(() => resolve(), 2000);
+            const onLoaded = () => {
+              video.onloadeddata = null;
+              video.onerror = null;
+              resolve();
+            };
+            video.onloadeddata = onLoaded;
+            video.onerror = () => {
+              video.onloadeddata = null;
+              video.onerror = null;
+              reject(new Error('video load error'));
+            };
+            setTimeout(() => {
+              video.onloadeddata = null;
+              video.onerror = null;
+              reject(new Error('timeout'));
+            }, 5000);
           });
 
-          if (cancelled) break;
+          if (cancelled) {
+            document.body.removeChild(video);
+            break;
+          }
 
-          // 用 canvas 截取第一帧
-          video.currentTime = 0;
-          await new Promise(r => { video.onseeked = r; setTimeout(r, 500); });
+          // seek 到第 0.1 秒（避免 seek 到 0 时某些浏览器不触发 seeked）
+          video.currentTime = 0.1;
+          await new Promise(r => {
+            const onSeeked = () => {
+              video.onseeked = null;
+              r();
+            };
+            video.onseeked = onSeeked;
+            setTimeout(r, 2000);
+          });
 
           const canvas = document.createElement('canvas');
-          canvas.width = Math.min(video.videoWidth, 320);
-          canvas.height = Math.min(video.videoHeight, 320 * (video.videoHeight / video.videoWidth));
+          const maxW = 320;
+          const ratio = video.videoWidth / video.videoHeight;
+          canvas.width = Math.min(video.videoWidth, maxW);
+          canvas.height = Math.round(canvas.width / ratio);
           const ctx = canvas.getContext('2d');
           ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
@@ -417,7 +468,7 @@ export default function Portfolio() {
           posterUrlsRef.current.push(posterUrl);
           setVideoPoster(prev => ({ ...prev, [v.src]: posterUrl }));
 
-          video.src = ''; // 释放 video 元素
+          document.body.removeChild(video);
         } catch {
           // 封面提取失败时静默忽略，卡片显示渐变占位
         }
@@ -475,7 +526,7 @@ export default function Portfolio() {
       <div className="portfolio__grid">
         <Folder title="Image Portfolio" color="#818cf8"
           items={imageItems} onPreview={setPreview} />
-        <Folder title="Video Portfolio" color="#c084fc"
+        <Folder title="Video Portfolio" color="#c084fc" description="精选视频作品 · 点击播放按钮预览"
           items={videoItems} onPreview={setPreview} videoCache={videoCache} videoPoster={videoPoster} />
       </div>
       {preview && <Viewer item={preview} onClose={() => setPreview(null)} videoCache={videoCache} />}
