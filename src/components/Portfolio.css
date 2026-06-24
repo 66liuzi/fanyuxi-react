@@ -220,6 +220,24 @@
   opacity: 0.5;
 }
 
+/* 视频封面占位符（poster图加载失败时显示） */
+.portfolio__card-poster {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, rgba(30,30,35,0.95) 0%, rgba(45,40,55,0.95) 100%);
+  position: relative;
+}
+
+.portfolio__card-play {
+  width: 48px;
+  height: 48px;
+  opacity: 0.9;
+  filter: drop-shadow(0 2px 8px rgba(0,0,0,0.5));
+}
+
 /* 光效装饰 */
 .portfolio__card-glow {
   position: absolute;
