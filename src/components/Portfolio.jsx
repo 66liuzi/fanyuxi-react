@@ -69,6 +69,7 @@ function calcCardSteps(items) {
    ============================================= */
 function MediaCard({ item, cardW, cardH, onPreview }) {
   const isVideo = item.type === 'video';
+  const [posterOk, setPosterOk] = useState(true);
 
   return (
     <div className="portfolio__card"
@@ -80,8 +81,18 @@ function MediaCard({ item, cardW, cardH, onPreview }) {
         </div>
         <div className="portfolio__card-body">
           {isVideo ? (
-            <img className="portfolio__card-media" src={item.poster}
-              alt={item.alt} loading="lazy" />
+            posterOk && item.poster ? (
+              <img className="portfolio__card-media" src={item.poster}
+                alt={item.alt} loading="lazy"
+                onError={() => setPosterOk(false)} />
+            ) : (
+              <div className="portfolio__card-poster">
+                <svg className="portfolio__card-play" viewBox="0 0 24 24" fill="none">
+                  <circle cx="12" cy="12" r="10" stroke="white" strokeWidth="1.5" opacity="0.6"/>
+                  <path d="M10 8l6 4-6 4V8z" fill="white"/>
+                </svg>
+              </div>
+            )
           ) : (
             <img className="portfolio__card-media" src={item.src}
               alt={item.alt} loading="lazy" />
