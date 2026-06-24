@@ -1,0 +1,392 @@
+/* =============================================
+   Portfolio — 作品集页面
+   两个 Finder 风格文件夹
+   无限循环滚动，点击预览，左右按钮
+   卡片尺寸自适应原素材比例
+   ============================================= */
+
+.portfolio {
+  position: relative;
+  width: 100%;
+  min-height: 100vh;
+  padding: 120px 40px 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #090909;
+  overflow: hidden;
+}
+
+/* LightRays 背景层 */
+.portfolio__rays-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.portfolio__grid {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  gap: 60px;
+  width: 100%;
+  max-width: 1200px;
+  justify-content: center;
+}
+
+/* =============================================
+   大文件夹组件（悬停展开 + 毛玻璃质感）
+   ============================================= */
+.portfolio__folder {
+  position: relative;
+  width: 380px;
+  transition: width 0.5s cubic-bezier(0.34, 1.56, 0.64, 1), transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.portfolio__folder--open {
+  width: 520px;
+}
+
+/* 顶部标签 */
+.portfolio__folder-tab {
+  position: relative;
+  z-index: 2;
+  width: 160px;
+  height: 40px;
+  border-radius: 14px 14px 0 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: -18px;
+  box-shadow: 0 -4px 20px rgba(0,0,0,0.2);
+}
+
+.portfolio__folder-tab span {
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 2px;
+  color: #fff;
+}
+
+/* 主体：毛玻璃质感 */
+.portfolio__folder-body {
+  position: relative;
+  z-index: 1;
+  background: rgba(255,255,255,0.03);
+  backdrop-filter: blur(40px);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 0 18px 18px 18px;
+  padding: 28px 24px;
+  min-height: 380px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05);
+}
+
+/* 悬停光晕 */
+.portfolio__folder-glow {
+  position: absolute;
+  bottom: -50px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 80%;
+  height: 100px;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 0;
+  filter: blur(40px);
+}
+
+/* =============================================
+   可滚动卡片列表
+   ============================================= */
+.portfolio__scrollable {
+  position: relative;
+  width: 100%;
+}
+
+.portfolio__track {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  overflow-x: auto;
+  overflow-y: visible;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  padding: 12px 8px;
+  cursor: grab;
+  user-select: none;
+}
+
+.portfolio__track::-webkit-scrollbar {
+  display: none;
+}
+
+.portfolio__track:active {
+  cursor: grabbing;
+}
+
+/* =============================================
+   小卡片（带文件夹装饰 + 光效，无文字）
+   尺寸由 JS 内联 style 动态计算
+   ============================================= */
+.portfolio__card {
+  position: relative;
+  flex: none;
+  cursor: pointer;
+}
+
+/* 文件夹装饰外壳 — flex column 让 tab + body 合理分配空间 */
+.portfolio__card-folder {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.4s;
+}
+
+.portfolio__card:hover .portfolio__card-folder {
+  transform: translateY(-8px) scale(1.03);
+  box-shadow: 0 16px 48px rgba(0,0,0,0.6);
+}
+
+/* 顶部小标签 */
+.portfolio__card-tab {
+  position: relative;
+  z-index: 2;
+  flex: none;
+  width: 60px;
+  height: 24px;
+  border-radius: 8px 8px 0 0;
+  background: rgba(255,255,255,0.15);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-bottom: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.portfolio__card-tab span {
+  font-family: var(--font-sans);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  color: rgba(255,255,255,0.7);
+}
+
+/* 内容区域：flex:1 填满 tab 以下剩余空间 */
+.portfolio__card-body {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  border-radius: 0 12px 12px 12px;
+  overflow: hidden;
+  background: rgba(20,20,22,0.9);
+  border: 1px solid rgba(255,255,255,0.08);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05);
+}
+
+/* 媒体元素：contain 模式完整展示原素材 */
+.portfolio__card-media {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.portfolio__card:hover .portfolio__card-media {
+  transform: scale(1.05);
+}
+
+/* 视频 fallback 标记 */
+.portfolio__card-video-fallback {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  background: rgba(20,20,22,0.95);
+  color: rgba(255,255,255,0.5);
+  font-size: 14px;
+  text-align: center;
+  padding: 16px;
+}
+
+.portfolio__card-video-fallback svg {
+  opacity: 0.5;
+}
+
+/* 光效装饰 */
+.portfolio__card-glow {
+  position: absolute;
+  bottom: -20px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 80%;
+  height: 80px;
+  border-radius: 50%;
+  filter: blur(20px);
+  pointer-events: none;
+  transition: opacity 0.4s;
+  opacity: 0;
+}
+
+.portfolio__card:hover .portfolio__card-glow {
+  opacity: 1;
+}
+
+/* 底部反射 */
+.portfolio__card-reflect {
+  position: absolute;
+  bottom: -8px;
+  left: 10%;
+  width: 80%;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.03);
+  filter: blur(4px);
+  pointer-events: none;
+}
+
+/* =============================================
+   全屏预览器
+   ============================================= */
+.portfolio__viewer {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(0,0,0,0.92);
+  backdrop-filter: blur(40px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  animation: viewerFadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes viewerFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.portfolio__viewer-content {
+  position: relative;
+  max-width: 90vw;
+  max-height: 90vh;
+  animation: viewerZoomIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes viewerZoomIn {
+  from { transform: scale(0.8); opacity: 0; }
+  to   { transform: scale(1); opacity: 1; }
+}
+
+.portfolio__viewer-media {
+  max-width: 90vw;
+  max-height: 90vh;
+  border-radius: 12px;
+  box-shadow: 0 24px 80px rgba(0,0,0,0.8);
+  object-fit: contain;
+}
+
+.portfolio__viewer-close {
+  position: absolute;
+  top: -48px;
+  right: -8px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid rgba(255,255,255,0.15);
+  background: rgba(255,255,255,0.08);
+  backdrop-filter: blur(20px);
+  color: rgba(255,255,255,0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.3s, border-color 0.3s, transform 0.3s;
+}
+
+.portfolio__viewer-close:hover {
+  background: rgba(255,255,255,0.15);
+  border-color: rgba(255,255,255,0.3);
+  transform: scale(1.1);
+}
+
+/* =============================================
+   左右滚动按钮
+   ============================================= */
+.portfolio__scroll-btn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 10;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid rgba(255,255,255,0.15);
+  background: rgba(255,255,255,0.08);
+  backdrop-filter: blur(20px);
+  color: rgba(255,255,255,0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.3s, border-color 0.3s, transform 0.3s;
+}
+
+.portfolio__scroll-btn:hover {
+  background: rgba(255,255,255,0.15);
+  border-color: rgba(255,255,255,0.3);
+  transform: translateY(-50%) scale(1.1);
+}
+
+.portfolio__scroll-btn--left { left: -56px; }
+.portfolio__scroll-btn--right { right: -56px; }
+
+/* =============================================
+   移动端响应式
+   ============================================= */
+@media (max-width: 1024px) {
+  .portfolio { padding: 100px 24px 60px; }
+  .portfolio__grid { gap: 40px; }
+  .portfolio__folder { width: 340px; }
+  .portfolio__folder--open { width: 440px; }
+}
+
+@media (max-width: 768px) {
+  .portfolio {
+    padding: 80px 16px 40px;
+    align-items: flex-start;
+    min-height: auto;
+  }
+
+  .portfolio__grid {
+    flex-direction: column;
+    gap: 60px;
+    align-items: center;
+  }
+
+  .portfolio__folder,
+  .portfolio__folder--open {
+    width: 320px !important;
+  }
+
+  .portfolio__folder-body { padding: 20px 16px; min-height: 320px; }
+
+  .portfolio__scroll-btn--left { left: -4px; }
+  .portfolio__scroll-btn--right { right: -4px; }
+}
+
+@media (max-width: 480px) {
+  .portfolio__folder,
+  .portfolio__folder--open {
+    width: 280px !important;
+  }
+
+  .portfolio__folder-body { min-height: 280px; }
+}
