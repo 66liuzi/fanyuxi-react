@@ -23,12 +23,13 @@ const imageItems = [
 ];
 
 // 视频全部为 mp4 格式，浏览器可播放
+// poster 为视频封面缩略图（构建时由 ffmpeg 从视频第一帧提取）
 const videoItems = [
-  { id: 1, type: 'video', src: `${BASE}media/videos/201410_raw.mp4`,    alt: 'Video 1', w: 1280, h: 720 },
-  { id: 2, type: 'video', src: `${BASE}media/videos/201411_raw.mp4`,    alt: 'Video 2', w: 1280, h: 720 },
-  { id: 3, type: 'video', src: `${BASE}media/videos/201412.mp4`,        alt: 'Video 3', w: 1280, h: 720 },
-  { id: 4, type: 'video', src: `${BASE}media/videos/201209_raw.mp4`,    alt: 'Video 4', w: 1280, h: 720 },
-  { id: 5, type: 'video', src: `${BASE}media/videos/20260624003620.mp4`, alt: 'Video 5', w: 1280, h: 720 },
+  { id: 1, type: 'video', src: `${BASE}media/videos/201410_raw.mp4`,    poster: `${BASE}media/videos/poster_201410_raw.jpg`, alt: 'Video 1', w: 1280, h: 720 },
+  { id: 2, type: 'video', src: `${BASE}media/videos/201411_raw.mp4`,    poster: `${BASE}media/videos/poster_201411_raw.jpg`, alt: 'Video 2', w: 1280, h: 720 },
+  { id: 3, type: 'video', src: `${BASE}media/videos/201412.mp4`,        poster: `${BASE}media/videos/poster_201412.jpg`,     alt: 'Video 3', w: 1280, h: 720 },
+  { id: 4, type: 'video', src: `${BASE}media/videos/201209_raw.mp4`,    poster: `${BASE}media/videos/poster_201209_raw.jpg`, alt: 'Video 4', w: 1280, h: 720 },
+  { id: 5, type: 'video', src: `${BASE}media/videos/20260624003620.mp4`, poster: `${BASE}media/videos/poster_20260624003620.jpg`, alt: 'Video 5', w: 1280, h: 720 },
 ];
 
 /* =============================================
@@ -79,8 +80,8 @@ function MediaCard({ item, cardW, cardH, onPreview }) {
         </div>
         <div className="portfolio__card-body">
           {isVideo ? (
-            <video className="portfolio__card-media" src={item.src}
-              muted loop playsInline preload="metadata" />
+            <img className="portfolio__card-media" src={item.poster}
+              alt={item.alt} loading="lazy" />
           ) : (
             <img className="portfolio__card-media" src={item.src}
               alt={item.alt} loading="lazy" />
@@ -253,7 +254,8 @@ function Viewer({ item, onClose }) {
       <div className="portfolio__viewer-content" onClick={e => e.stopPropagation()}>
         {isVideo ? (
           <video className="portfolio__viewer-media" src={item.src}
-            controls autoPlay playsInline style={{ objectFit: 'contain' }} />
+            poster={item.poster} controls autoPlay playsInline
+            style={{ objectFit: 'contain' }} />
         ) : (
           <img className="portfolio__viewer-media" src={item.src} alt={item.alt}
             style={{ objectFit: 'contain' }} />
