@@ -247,16 +247,18 @@ function ScrollableCards({ items, onPreview, videoCache }) {
   }, [onScroll, loopCheck, oneSetWidth]);
 
   const onDown = (e) => {
+    // 触摸设备：让系统原生 overflow-x:auto 处理滚动，不拦截
+    if (e.pointerType === 'touch') return;
     const el = trackRef.current;
     if (!el) return;
-    // 忽略在按钮上的 mousedown
+    // 忽略在按钮上的点击
     if (e.target.closest('.portfolio__scroll-btn')) return;
     if (scrollEndTimer.current) clearTimeout(scrollEndTimer.current);
     drag.current = { startX: e.pageX, scrollStart: el.scrollLeft };
     isDragging.current = false;
     setDragging(false);
     el.style.cursor = 'grabbing';
-    e.preventDefault(); // 阻止默认的文本选择行为
+    e.preventDefault(); // 桌面端阻止文本选择
   };
 
   /* 按钮点击 */
@@ -271,7 +273,7 @@ function ScrollableCards({ items, onPreview, videoCache }) {
     <div className="portfolio__scrollable">
       <div ref={trackRef} className="portfolio__track"
         onScroll={onScroll}
-        onMouseDown={onDown}>
+        onPointerDown={onDown}>
         {/* 渲染 3 份实现无限循环 */}
         {[0,1,2].flatMap(copy =>
           sizedItems.map((it, i) => (
