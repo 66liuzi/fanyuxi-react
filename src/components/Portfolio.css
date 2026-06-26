@@ -113,9 +113,9 @@
   overflow-y: visible;
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
-  scroll-snap-type: x mandatory;
   padding: 12px 8px;
-  cursor: default;
+  cursor: grab;
+  user-select: none;
 }
 
 .portfolio__track::-webkit-scrollbar {
@@ -123,7 +123,7 @@
 }
 
 .portfolio__track:active {
-  cursor: default;
+  cursor: grabbing;
 }
 
 /* =============================================
@@ -134,7 +134,6 @@
   position: relative;
   flex: none;
   cursor: pointer;
-  scroll-snap-align: center;
 }
 
 /* 文件夹装饰外壳 — flex column 让 tab + body 合理分配空间 */

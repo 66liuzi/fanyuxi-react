@@ -67,7 +67,7 @@ function calcCardSteps(items) {
 /* =============================================
    卡片组件（带文件夹装饰，无文字，尺寸自适应）
    ============================================= */
-function MediaCard({ item, cardW, cardH, onPreview, videoCache }) {
+function MediaCard({ item, cardW, cardH, onPreview, videoCache, dragging }) {
   const isVideo = item.type === 'video';
   const isCached = isVideo && videoCache && videoCache[item.src];
   // 视频封面：直接使用COS上的poster图片
@@ -76,12 +76,14 @@ function MediaCard({ item, cardW, cardH, onPreview, videoCache }) {
   // 图片卡片：整个卡片可点击；视频卡片：仅播放按钮可点击
   const handleCardClick = (e) => {
     if (isVideo) return; // 视频卡片不响应卡片区域的点击
+    if (dragging) { e.preventDefault(); e.stopPropagation(); return; }
     onPreview(item);
   };
 
   // 播放按钮点击（仅视频卡片）
   const handlePlayClick = (e) => {
-    e.stopPropagation();
+    e.stopPropagation(); // 阻止冒泡到卡片 div
+    if (dragging) { e.preventDefault(); return; }
     onPreview(item);
   };
 
@@ -130,16 +132,19 @@ function MediaCard({ item, cardW, cardH, onPreview, videoCache }) {
 /* =============================================
    可滚动卡片列表（无限循环 + 左右按钮）
    支持不同宽度的卡片，纵向居中对齐
-   使用原生滚动 + JS 无限循环跳转
+   鼠标拖动滚动：mousedown → window级mousemove/mouseup
    ============================================= */
 function ScrollableCards({ items, onPreview, videoCache }) {
   const trackRef = useRef(null);
+  const drag = useRef(null);           // { startX, scrollStart } 鼠标拖动数据
+  const isDragging = useRef(false);     // 是否正在拖动（超过阈值才算）
   const autoRef = useRef(null);
   const scrollEndTimer = useRef(null);
   const userScrolling = useRef(false);
 
   const canScroll = useRef({ left: false, right: true });
   const [btn, setBtn] = useState({ left: false, right: true });
+  const [dragging, setDragging] = useState(false); // 传给 MediaCard，阻止拖动时的 onClick
 
   // 预计算带尺寸的 items
   const sizedItems = calcCardSteps(items);
@@ -159,22 +164,16 @@ function ScrollableCards({ items, onPreview, videoCache }) {
     }
   }, [oneSetWidth]);
 
-  /* 无限循环跳转 — 基于原生 scroll 事件 */
+  /* 无限循环跳转 */
   const loopCheck = useCallback(() => {
     const el = trackRef.current;
     if (!el) return;
-    // 如果滚过了第2份副本，跳回第1份
-    if (el.scrollLeft >= oneSetWidth * 2) {
-      el.scrollLeft = el.scrollLeft - oneSetWidth;
-    }
-    // 如果滚到了第0份（左侧），跳到第1份
-    else if (el.scrollLeft <= 0) {
-      el.scrollLeft = el.scrollLeft + oneSetWidth;
-    }
+    if (el.scrollLeft >= oneSetWidth * 2) el.scrollLeft -= oneSetWidth;
+    else if (el.scrollLeft <= 0) el.scrollLeft += oneSetWidth;
     updBtn();
   }, [oneSetWidth, updBtn]);
 
-  /* 滚动事件 — 使用原生 scroll 事件 */
+  /* 滚动事件 */
   const onScroll = useCallback(() => {
     updBtn();
     userScrolling.current = true;
@@ -185,7 +184,7 @@ function ScrollableCards({ items, onPreview, videoCache }) {
     }, 150);
   }, [updBtn, loopCheck]);
 
-  /* 初始化：跳到中间那份，并预加载相邻卡片 */
+  /* 初始化 */
   useEffect(() => {
     const el = trackRef.current;
     if (!el) return;
@@ -196,20 +195,69 @@ function ScrollableCards({ items, onPreview, videoCache }) {
     return () => cancelAnimationFrame(id);
   }, [oneSetWidth, updBtn]);
 
-  /* 自动缓慢滚动 — 尊重用户的滚动操作 */
+  /* 自动缓慢滚动 */
   useEffect(() => {
     autoRef.current = setInterval(() => {
       const el = trackRef.current;
-      if (!el || userScrolling.current) return;
+      if (!el || drag.current || userScrolling.current) return;
       el.scrollLeft += 0.5;
-      // 检查是否需要无限循环跳转
-      if (el.scrollLeft >= oneSetWidth * 2 - 10) {
-        el.scrollLeft = el.scrollLeft - oneSetWidth;
-      }
       onScroll();
     }, 30);
     return () => clearInterval(autoRef.current);
-  }, [onScroll, oneSetWidth]);
+  }, [onScroll]);
+
+  /* 鼠标拖动 — window 级监听，拖动时鼠标移出轨道也不中断 */
+  const DRAG_THRESHOLD = 5; // 最小拖动距离，低于此值视为点击
+
+  useEffect(() => {
+    const handleMove = (e) => {
+      if (!drag.current) return;
+      const dx = e.pageX - drag.current.startX;
+      // 超过阈值才算真正拖动
+      if (!isDragging.current && Math.abs(dx) > DRAG_THRESHOLD) {
+        isDragging.current = true;
+        setDragging(true);
+      }
+      if (!isDragging.current) return;
+      const el = trackRef.current;
+      if (!el) return;
+      el.scrollLeft = drag.current.scrollStart - dx;
+      onScroll();
+    };
+    const handleUp = () => {
+      drag.current = null;
+      // 延迟100ms重置拖动状态，确保松手后的click事件仍看到dragging=true
+      setTimeout(() => {
+        isDragging.current = false;
+        setDragging(false);
+      }, 100);
+      if (trackRef.current) trackRef.current.style.cursor = 'grab';
+      if (scrollEndTimer.current) clearTimeout(scrollEndTimer.current);
+      scrollEndTimer.current = setTimeout(() => {
+        userScrolling.current = false;
+        loopCheck();
+      }, 150);
+    };
+    window.addEventListener('mousemove', handleMove);
+    window.addEventListener('mouseup', handleUp);
+    return () => {
+      window.removeEventListener('mousemove', handleMove);
+      window.removeEventListener('mouseup', handleUp);
+    };
+  }, [onScroll, loopCheck, oneSetWidth]);
+
+  const onDown = (e) => {
+    const el = trackRef.current;
+    if (!el) return;
+    // 忽略在按钮上的 mousedown
+    if (e.target.closest('.portfolio__scroll-btn')) return;
+    if (scrollEndTimer.current) clearTimeout(scrollEndTimer.current);
+    drag.current = { startX: e.pageX, scrollStart: el.scrollLeft };
+    isDragging.current = false;
+    setDragging(false);
+    el.style.cursor = 'grabbing';
+    e.preventDefault(); // 阻止默认的文本选择行为
+  };
 
   /* 按钮点击 */
   const scrollOne = dir => {
@@ -219,16 +267,53 @@ function ScrollableCards({ items, onPreview, videoCache }) {
     requestAnimationFrame(onScroll);
   };
 
+  /* 触摸拖动支持（移动端） */
+  const touchStart = useRef(null);
+  const touchScrollStart = useRef(0);
+
+  const onTouchStart = (e) => {
+    const el = trackRef.current;
+    if (!el) return;
+    const t = e.touches[0];
+    touchStart.current = { x: t.pageX, y: t.pageY };
+    touchScrollStart.current = el.scrollLeft;
+    userScrolling.current = true;
+  };
+
+  const onTouchMove = (e) => {
+    if (!touchStart.current) return;
+    const el = trackRef.current;
+    if (!el) return;
+    const t = e.touches[0];
+    const dx = t.pageX - touchStart.current.x;
+    el.scrollLeft = touchScrollStart.current - dx;
+    onScroll();
+  };
+
+  const onTouchEnd = () => {
+    touchStart.current = null;
+    if (scrollEndTimer.current) clearTimeout(scrollEndTimer.current);
+    scrollEndTimer.current = setTimeout(() => {
+      userScrolling.current = false;
+      loopCheck();
+    }, 150);
+  };
+
   return (
     <div className="portfolio__scrollable">
       <div ref={trackRef} className="portfolio__track"
-        onScroll={onScroll}>
+        onScroll={onScroll}
+        onMouseDown={onDown}
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}>
         {/* 渲染 3 份实现无限循环 */}
         {[0,1,2].flatMap(copy =>
           sizedItems.map((it, i) => (
             <MediaCard key={`${copy}-${it.id}-${i}`}
               item={it} cardW={it.cardW} cardH={it.cardH}
-              onPreview={onPreview} videoCache={videoCache} />
+              onPreview={onPreview} videoCache={videoCache}
+              dragging={dragging} />
           ))
         )}
       </div>
@@ -241,44 +326,16 @@ function ScrollableCards({ items, onPreview, videoCache }) {
    ============================================= */
 function Viewer({ item, onClose, videoCache }) {
   const isVideo = item.type === 'video';
-  const videoRef = useRef(null);
+  // 如果视频已缓存，使用 blob URL 即时播放；否则降级用原始 URL
   const videoSrc = isVideo && videoCache?.[item.src] ? videoCache[item.src] : item.src;
-
-  // 微信兼容：手动触发播放
-  useEffect(() => {
-    if (isVideo && videoRef.current) {
-      const videoEl = videoRef.current;
-      const timer = setTimeout(() => {
-        const p = videoEl.play();
-        if (p) p.catch(() => {});
-      }, 100);
-      return () => clearTimeout(timer);
-    }
-  }, [isVideo, videoSrc]);
-
-  const handleVideoClick = (e) => {
-    e.stopPropagation();
-    if (videoRef.current) videoRef.current.play().catch(() => {});
-  };
 
   return (
     <div className="portfolio__viewer" onClick={onClose}>
       <div className="portfolio__viewer-content" onClick={e => e.stopPropagation()}>
         {isVideo ? (
-          <video
-            ref={videoRef}
-            className="portfolio__viewer-media"
-            src={videoSrc}
-            controls
-            playsInline
-            webkit-playsInline
-            x5-video-player-type="h5"
-            x5-video-player-fullscreen="true"
-            x5-playsinline
-            preload="auto"
-            style={{ objectFit: 'contain' }}
-            onClick={handleVideoClick}
-          />
+          <video className="portfolio__viewer-media" src={videoSrc}
+            controls autoPlay playsInline
+            style={{ objectFit: 'contain' }} />
         ) : (
           <img className="portfolio__viewer-media" src={item.src} alt={item.alt}
             style={{ objectFit: 'contain' }} />
