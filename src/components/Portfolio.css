@@ -113,6 +113,7 @@
   overflow-y: visible;
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
+  touch-action: pan-x;
   padding: 12px 8px;
   cursor: grab;
   user-select: none;

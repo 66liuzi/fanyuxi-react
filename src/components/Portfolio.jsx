@@ -267,46 +267,11 @@ function ScrollableCards({ items, onPreview, videoCache }) {
     requestAnimationFrame(onScroll);
   };
 
-  /* 触摸拖动支持（移动端） */
-  const touchStart = useRef(null);
-  const touchScrollStart = useRef(0);
-
-  const onTouchStart = (e) => {
-    const el = trackRef.current;
-    if (!el) return;
-    const t = e.touches[0];
-    touchStart.current = { x: t.pageX, y: t.pageY };
-    touchScrollStart.current = el.scrollLeft;
-    userScrolling.current = true;
-  };
-
-  const onTouchMove = (e) => {
-    if (!touchStart.current) return;
-    const el = trackRef.current;
-    if (!el) return;
-    const t = e.touches[0];
-    const dx = t.pageX - touchStart.current.x;
-    el.scrollLeft = touchScrollStart.current - dx;
-    onScroll();
-  };
-
-  const onTouchEnd = () => {
-    touchStart.current = null;
-    if (scrollEndTimer.current) clearTimeout(scrollEndTimer.current);
-    scrollEndTimer.current = setTimeout(() => {
-      userScrolling.current = false;
-      loopCheck();
-    }, 150);
-  };
-
   return (
     <div className="portfolio__scrollable">
       <div ref={trackRef} className="portfolio__track"
         onScroll={onScroll}
-        onMouseDown={onDown}
-        onTouchStart={onTouchStart}
-        onTouchMove={onTouchMove}
-        onTouchEnd={onTouchEnd}>
+        onMouseDown={onDown}>
         {/* 渲染 3 份实现无限循环 */}
         {[0,1,2].flatMap(copy =>
           sizedItems.map((it, i) => (
