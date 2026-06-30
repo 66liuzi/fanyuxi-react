@@ -175,10 +175,10 @@ function ScrollableCards({ items, onPreview, videoCache }) {
     updBtn();
   }, [oneSetWidth, updBtn]);
 
-  /* 滚动事件 */
+  /* 滚动事件 — 触摸设备完全交给系统原生滚动，不做任何 JS 处理 */
   const onScroll = useCallback(() => {
+    if (isTouch.current) return;
     updBtn();
-    if (isTouch.current) return; // 触摸设备：不程序化修改 scrollLeft，交给系统原生滚动
     userScrolling.current = true;
     if (scrollEndTimer.current) clearTimeout(scrollEndTimer.current);
     scrollEndTimer.current = setTimeout(() => {
@@ -210,7 +210,7 @@ function ScrollableCards({ items, onPreview, videoCache }) {
     return () => clearInterval(autoRef.current);
   }, [onScroll]);
 
-  /* 鼠标拖动 — window 级监听，拖动时鼠标移出轨道也不中断 */
+  /* 鼠标拖动 — onMouseDown 仅桌面端触发，触摸设备完全不执行 */
   const DRAG_THRESHOLD = 5; // 最小拖动距离，低于此值视为点击
 
   useEffect(() => {
@@ -251,8 +251,7 @@ function ScrollableCards({ items, onPreview, videoCache }) {
   }, [onScroll, loopCheck, oneSetWidth]);
 
   const onDown = (e) => {
-    // 触摸设备：让系统原生 overflow-x:auto 处理滚动，不拦截
-    if (e.pointerType === 'touch') return;
+    // onMouseDown 仅鼠标设备触发，触摸设备不会进入此函数
     const el = trackRef.current;
     if (!el) return;
     // 忽略在按钮上的点击
@@ -277,7 +276,7 @@ function ScrollableCards({ items, onPreview, videoCache }) {
     <div className="portfolio__scrollable">
       <div ref={trackRef} className="portfolio__track"
         onScroll={onScroll}
-        onPointerDown={onDown}>
+        onMouseDown={onDown}>
         {/* 渲染 3 份实现无限循环 */}
         {[0,1,2].flatMap(copy =>
           sizedItems.map((it, i) => (
@@ -327,9 +326,14 @@ function Viewer({ item, onClose, videoCache }) {
    ============================================= */
 function Folder({ title, color, items, onPreview, videoCache, description }) {
   const [hover, setHover] = useState(false);
+  const isTouch = useRef(false);
+  useEffect(() => {
+    isTouch.current = window.matchMedia('(hover: none)').matches;
+  }, []);
   return (
     <div className={`portfolio__folder${hover ? ' portfolio__folder--open' : ''}`}
-      onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}>
+      onMouseEnter={() => { if (!isTouch.current) setHover(true); }}
+      onMouseLeave={() => { if (!isTouch.current) setHover(false); }}>
       <div className="portfolio__folder-tab" style={{ background: color }}>
         <span>{title}</span>
       </div>
