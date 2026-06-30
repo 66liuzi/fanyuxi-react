@@ -138,6 +138,11 @@ function ScrollableCards({ items, onPreview, videoCache }) {
   const autoRef = useRef(null);
   const scrollEndTimer = useRef(null);
   const userScrolling = useRef(false);
+  const isTouch = useRef(false);
+
+  useEffect(() => {
+    isTouch.current = window.matchMedia('(hover: none)').matches;
+  }, []);
 
   const canScroll = useRef({ left: false, right: true });
   const [btn, setBtn] = useState({ left: false, right: true });
@@ -173,6 +178,7 @@ function ScrollableCards({ items, onPreview, videoCache }) {
   /* 滚动事件 */
   const onScroll = useCallback(() => {
     updBtn();
+    if (isTouch.current) return; // 触摸设备：不程序化修改 scrollLeft，交给系统原生滚动
     userScrolling.current = true;
     if (scrollEndTimer.current) clearTimeout(scrollEndTimer.current);
     scrollEndTimer.current = setTimeout(() => {
@@ -323,8 +329,7 @@ function Folder({ title, color, items, onPreview, videoCache, description }) {
   const [hover, setHover] = useState(false);
   return (
     <div className={`portfolio__folder${hover ? ' portfolio__folder--open' : ''}`}
-      onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}
-      onTouchStart={() => setHover(h => !h)}>
+      onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}>
       <div className="portfolio__folder-tab" style={{ background: color }}>
         <span>{title}</span>
       </div>
