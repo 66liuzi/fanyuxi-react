@@ -192,8 +192,9 @@ function ScrollableCards({ items, onPreview, videoCache }) {
     return () => cancelAnimationFrame(id);
   }, [oneSetWidth, updBtn]);
 
-  /* 自动缓慢滚动 */
+  /* 自动缓慢滚动 — 仅桌面端，触摸设备交给系统原生滚动 */
   useEffect(() => {
+    if (window.matchMedia('(hover: none)').matches) return; // 触摸设备不自动滚动
     autoRef.current = setInterval(() => {
       const el = trackRef.current;
       if (!el || drag.current || userScrolling.current) return;
