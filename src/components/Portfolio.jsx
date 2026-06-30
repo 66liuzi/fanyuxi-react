@@ -117,10 +117,7 @@ function MediaCard({ item, cardW, cardH, onPreview, videoCache, dragging }) {
             <img className="portfolio__card-media" src={item.src}
               alt={item.alt} loading="lazy" />
           )}
-          {/* 缓存状态指示：绿色圆点=已缓存，蓝色脉冲=正在缓存 */}
-          {isVideo && (
-            <div className={`portfolio__card-cache ${isCached ? 'portfolio__card-cache--done' : 'portfolio__card-cache--loading'}`} />
-          )}
+          {/* 缓存指示已移除：视频改为点击按需加载 */}
           <div className="portfolio__card-glow" />
         </div>
         <div className="portfolio__card-reflect" />
@@ -301,7 +298,7 @@ function Viewer({ item, onClose, videoCache }) {
       <div className="portfolio__viewer-content" onClick={e => e.stopPropagation()}>
         {isVideo ? (
           <video className="portfolio__viewer-media" src={videoSrc}
-            controls autoPlay playsInline
+            controls autoPlay playsInline preload="none"
             style={{ objectFit: 'contain' }} />
         ) : (
           <img className="portfolio__viewer-media" src={item.src} alt={item.alt}
@@ -350,40 +347,8 @@ function Folder({ title, color, items, onPreview, videoCache, description }) {
 export default function Portfolio() {
   const [preview, setPreview] = useState(null);
 
-  /* 视频预加载缓存：页面打开时自动下载所有视频到 blob
-     用户点击视频时，如果已缓存则 blob URL 即时播放；否则降级用原始 URL
-     COS 跨域 fetch 需要 CORS 配置，失败时静默降级 */
-  const [videoCache, setVideoCache] = useState({});   // src → blobUrl
-  const blobUrlsRef = useRef([]);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    // 预加载视频 blob 缓存
-    const preloadVideos = async () => {
-      for (const v of videoItems) {
-        if (cancelled) break;
-        try {
-          const res = await fetch(v.src, { mode: 'cors' });
-          const blob = await res.blob();
-          if (!cancelled) {
-            const url = URL.createObjectURL(blob);
-            blobUrlsRef.current.push(url);
-            setVideoCache(prev => ({ ...prev, [v.src]: url }));
-          }
-        } catch {
-          // 跨域 fetch 失败（CORS未配置）时静默忽略，Viewer 会降级使用原始 URL
-        }
-      }
-    };
-
-    preloadVideos();
-
-    return () => {
-      cancelled = true;
-      blobUrlsRef.current.forEach(url => URL.revokeObjectURL(url));
-    };
-  }, []);
+  // 视频不再预加载，点击播放时才从 COS 按需加载
+  const [videoCache] = useState({});  // 始终为空，保留 prop 兼容性
 
   return (
     <section className="portfolio" id="portfolio">
