@@ -30,6 +30,12 @@ const videoItems = [
   { id: 3, type: 'video', src: `${COS_BASE}/media/videos/201412.mp4`,        alt: 'Video 3', w: 1280, h: 720, poster: `${COS_BASE}/media/video-posters/201412_poster.jpg` },
   { id: 4, type: 'video', src: `${COS_BASE}/media/videos/201209_raw.mp4`,    alt: 'Video 4', w: 1280, h: 720, poster: `${COS_BASE}/media/video-posters/201209_raw_poster.jpg` },
   { id: 5, type: 'video', src: `${COS_BASE}/media/videos/20260624003620.mp4`, alt: 'Video 5', w: 1280, h: 720, poster: `${COS_BASE}/media/video-posters/20260624003620_poster.jpg` },
+  { id: 6, type: 'video', src: `${COS_BASE}/media/videos/gulou0321.mp4`,         alt: 'Video 6', w: 1920, h: 1080, poster: `${COS_BASE}/media/video-posters/gulou0321_poster.jpg` },
+  { id: 7, type: 'video', src: `${COS_BASE}/media/videos/zhezuocheng_pian.mp4`,  alt: 'Video 7', w: 1920, h: 1080, poster: `${COS_BASE}/media/video-posters/zhezuocheng_pian_poster.jpg` },
+  { id: 8, type: 'video', src: `${COS_BASE}/media/videos/zhagewo_pian.mp4`,      alt: 'Video 8', w: 1920, h: 1080, poster: `${COS_BASE}/media/video-posters/zhagewo_pian_poster.jpg` },
+  { id: 9, type: 'video', src: `${COS_BASE}/media/videos/ciluzhaozhao_pian.mp4`, alt: 'Video 9', w: 1920, h: 1080, poster: `${COS_BASE}/media/video-posters/ciluzhaozhao_pian_poster.jpg` },
+  { id: 10, type: 'video', src: `${COS_BASE}/media/videos/binhaizhisheng_pian.mp4`, alt: 'Video 10', w: 1920, h: 1080, poster: `${COS_BASE}/media/video-posters/binhaizhisheng_pian_poster.jpg` },
+  { id: 11, type: 'video', src: `${COS_BASE}/media/videos/huangyaguan.mp4`,      alt: 'Video 11', w: 1206, h: 732,  poster: `${COS_BASE}/media/video-posters/huangyaguan_poster.jpg` },
 ];
 
 /* =============================================
