@@ -25,13 +25,13 @@ const imageItems = [
 // 视频全部为 mp4 格式，浏览器可播放
 // 视频封面已预先生成并上传到COS，直接从COS加载
 const videoItems = [
-  { id: 1, type: 'video', src: `${COS_BASE}/media/videos/201410_raw.mp4`,    alt: 'Video 1', name: '201410', w: 1280, h: 720, poster: `${COS_BASE}/media/video-posters/201410_raw_poster.jpg` },
-  { id: 2, type: 'video', src: `${COS_BASE}/media/videos/201411_raw.mp4`,    alt: 'Video 2', name: '201411', w: 1280, h: 720, poster: `${COS_BASE}/media/video-posters/201411_raw_poster.jpg` },
-  { id: 3, type: 'video', src: `${COS_BASE}/media/videos/201412.mp4`,        alt: 'Video 3', name: '201412', w: 1280, h: 720, poster: `${COS_BASE}/media/video-posters/201412_poster.jpg` },
-  { id: 4, type: 'video', src: `${COS_BASE}/media/videos/201209_raw.mp4`,    alt: 'Video 4', name: '201209', w: 1280, h: 720, poster: `${COS_BASE}/media/video-posters/201209_raw_poster.jpg` },
-  { id: 5, type: 'video', src: `${COS_BASE}/media/videos/20260624003620.mp4`, alt: 'Video 5', name: '202606', w: 1280, h: 720, poster: `${COS_BASE}/media/video-posters/20260624003620_poster.jpg` },
-  { id: 6, type: 'video', src: `${COS_BASE}/media/videos/gulou0321.mp4`,         alt: 'Video 6', name: '鼓楼', w: 1920, h: 1080, poster: `${COS_BASE}/media/video-posters/gulou0321_poster.jpg` },
-  { id: 7, type: 'video', src: `${COS_BASE}/media/videos/zhezuocheng_pian.mp4`,  alt: 'Video 7', name: '这座城', w: 1920, h: 1080, poster: `${COS_BASE}/media/video-posters/zhezuocheng_pian_poster.jpg` },
+  { id: 1, type: 'video', src: `${COS_BASE}/media/videos/zhezuocheng_pian.mp4`,  alt: 'Video 1', name: '这座城', w: 1920, h: 1080, poster: `${COS_BASE}/media/video-posters/zhezuocheng_pian_poster.jpg` },
+  { id: 2, type: 'video', src: `${COS_BASE}/media/videos/201410_raw.mp4`,    alt: 'Video 2', name: '201410', w: 1280, h: 720, poster: `${COS_BASE}/media/video-posters/201410_raw_poster.jpg` },
+  { id: 3, type: 'video', src: `${COS_BASE}/media/videos/201411_raw.mp4`,    alt: 'Video 3', name: '201411', w: 1280, h: 720, poster: `${COS_BASE}/media/video-posters/201411_raw_poster.jpg` },
+  { id: 4, type: 'video', src: `${COS_BASE}/media/videos/201412.mp4`,        alt: 'Video 4', name: '201412', w: 1280, h: 720, poster: `${COS_BASE}/media/video-posters/201412_poster.jpg` },
+  { id: 5, type: 'video', src: `${COS_BASE}/media/videos/201209_raw.mp4`,    alt: 'Video 5', name: '201209', w: 1280, h: 720, poster: `${COS_BASE}/media/video-posters/201209_raw_poster.jpg` },
+  { id: 6, type: 'video', src: `${COS_BASE}/media/videos/20260624003620.mp4`, alt: 'Video 6', name: '202606', w: 1280, h: 720, poster: `${COS_BASE}/media/video-posters/20260624003620_poster.jpg` },
+  { id: 7, type: 'video', src: `${COS_BASE}/media/videos/gulou0321.mp4`,         alt: 'Video 7', name: '鼓楼', w: 1920, h: 1080, poster: `${COS_BASE}/media/video-posters/gulou0321_poster.jpg` },
   { id: 8, type: 'video', src: `${COS_BASE}/media/videos/zhagewo_pian.mp4`,      alt: 'Video 8', name: '扎个我', w: 1920, h: 1080, poster: `${COS_BASE}/media/video-posters/zhagewo_pian_poster.jpg` },
   { id: 9, type: 'video', src: `${COS_BASE}/media/videos/ciluzhaozhao_pian.mp4`, alt: 'Video 9', name: '此路昭昭', w: 1920, h: 1080, poster: `${COS_BASE}/media/video-posters/ciluzhaozhao_pian_poster.jpg` },
   { id: 10, type: 'video', src: `${COS_BASE}/media/videos/binhaizhisheng_pian.mp4`, alt: 'Video 10', name: '滨海之声', w: 1920, h: 1080, poster: `${COS_BASE}/media/video-posters/binhaizhisheng_pian_poster.jpg` },
