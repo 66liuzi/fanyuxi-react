@@ -17,6 +17,23 @@
   overflow: hidden;
 }
 
+/* Hero → Portfolio 过渡渐变层 */
+.portfolio__transition {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 200px;
+  z-index: 2;
+  pointer-events: none;
+  background: linear-gradient(to bottom,
+    #090909 0%,
+    rgba(9,9,9,0.85) 30%,
+    rgba(9,9,9,0.4) 70%,
+    transparent 100%
+  );
+}
+
 /* LightRays 背景层 */
 .portfolio__rays-bg {
   position: absolute;
@@ -157,8 +174,10 @@
   position: relative;
   z-index: 2;
   flex: none;
-  width: 60px;
+  min-width: 60px;
+  max-width: 120px;
   height: 24px;
+  padding: 0 10px;
   border-radius: 8px 8px 0 0;
   background: rgba(255,255,255,0.15);
   backdrop-filter: blur(10px);
@@ -171,10 +190,13 @@
 
 .portfolio__card-tab span {
   font-family: var(--font-sans);
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 600;
-  letter-spacing: 1px;
-  color: rgba(255,255,255,0.7);
+  letter-spacing: 0.5px;
+  color: rgba(255,255,255,0.8);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* 内容区域：flex:1 填满 tab 以下剩余空间 */
