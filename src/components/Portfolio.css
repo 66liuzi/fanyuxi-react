@@ -17,23 +17,6 @@
   overflow: hidden;
 }
 
-/* Hero → Portfolio 过渡渐变层 */
-.portfolio__transition {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 200px;
-  z-index: 2;
-  pointer-events: none;
-  background: linear-gradient(to bottom,
-    #090909 0%,
-    rgba(9,9,9,0.85) 30%,
-    rgba(9,9,9,0.4) 70%,
-    transparent 100%
-  );
-}
-
 /* LightRays 背景层 */
 .portfolio__rays-bg {
   position: absolute;
